@@ -26,7 +26,7 @@
 	<!-- ===== FISCH: estilos del menú (añadido, no modifica app.css) ===== -->
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Caveat:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 	<style>
 		body { touch-action: none; }
 
@@ -48,7 +48,7 @@
 
 		#fisch-card {
 			position: relative; width: 100%; max-width: 460px; pointer-events: auto;
-			background: rgba(8, 16, 38, .88); border: 1px solid rgba(120, 160, 255, .35);
+			background: rgba(8, 16, 38, .9); border: 1px solid rgba(214, 240, 58, .45);
 			border-radius: 18px; padding: 16px 44px 14px 16px;
 			backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
 			opacity: 0; visibility: hidden; transform: translateY(12px);
@@ -57,7 +57,7 @@
 		#fisch-card.open { opacity: 1; visibility: visible; transform: none; }
 		#fisch-card h2 { margin: 0 0 6px; font-size: 20px; font-weight: 700; }
 		#fisch-card p { margin: 0 0 8px; font-size: 15px; line-height: 1.45; }
-		#fisch-card .tag { margin: 0; font-family: "Caveat", cursive; font-size: 26px; color: #9fc0ff; }
+		#fisch-card .tag { margin: 0; font-family: "Caveat", cursive; font-size: 26px; color: #d6f03a; }
 		#fisch-card .spin-tip { margin: 6px 0 0; font-size: 12px; opacity: .7; }
 		#fisch-close {
 			position: absolute; top: 8px; right: 8px; width: 32px; height: 32px;
@@ -77,7 +77,7 @@
 			transition: border-color .2s, transform .2s;
 		}
 		.fisch-btn svg { width: 32px; height: 32px; fill: none; stroke: #0b1530; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-		.fisch-btn[aria-pressed="true"] .circle { border-color: #3f7be0; transform: scale(1.08); }
+		.fisch-btn[aria-pressed="true"] .circle { border-color: #d6f03a; box-shadow: 0 0 0 3px #ec22b8, 0 0 18px rgba(236,34,184,.55); transform: scale(1.08); }
 		#fisch-close:focus-visible, .fisch-btn:focus-visible { outline: 3px solid #9fc0ff; outline-offset: 2px; }
 
 		@media (prefers-reduced-motion: reduce) {
@@ -299,7 +299,7 @@
 			const THREE = window.THREE;
 			const anchor = mc.anchors[0];
 
-			try { await document.fonts.load('700 100px Caveat'); await document.fonts.load('700 26px "DM Sans"'); } catch (e) {}
+			try { await document.fonts.load('700 100px Caveat'); await document.fonts.load('700 26px "DM Sans"'); await document.fonts.load('400 60px "Archivo Black"'); } catch (e) {}
 
 			// Mismo criterio que mindar_controller: el contenido se diseña con Y hacia arriba.
 			const holder = new THREE.Group();
@@ -361,6 +361,69 @@
 				content.position.sub(c);
 			}
 
+			// ---------- estilo Fisch: paleta y dibujos ----------
+			const FISCH = { lime: '#d6f03a', pink: '#ec22b8', ink: '#101010', orange: '#ef7d14', beige: '#e9e1d0', navy: '#0f1a3d' };
+			const HEAVY = '"Archivo Black", Impact, "Arial Black", sans-serif';
+
+			function rr(ctx, x, y, w, h, r) {
+				ctx.beginPath(); ctx.moveTo(x + r, y);
+				ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+				ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+			}
+			// Cara de Fisch (naranja, ojo grande, pico abierto, pelo oscuro) con contorno negro grueso.
+			function fishFace(ctx, cx, cy, s) {
+				ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.lineWidth = s * .05; ctx.strokeStyle = FISCH.ink;
+				// pelo oscuro
+				ctx.fillStyle = '#2a1812';
+				[[-.75, -.1, .42], [-.85, .35, .38], [-.55, .62, .36], [-.3, -.75, .4], [-.7, -.55, .36], [.05, -.9, .34]]
+					.forEach(([x, y, r]) => { ctx.beginPath(); ctx.arc(cx + x * s, cy + y * s, r * s, 0, 7); ctx.fill(); });
+				// cuerpo
+				ctx.fillStyle = FISCH.orange; ctx.beginPath(); ctx.ellipse(cx, cy, s * .95, s * .85, -.25, 0, 7); ctx.fill(); ctx.stroke();
+				// aleta
+				ctx.fillStyle = '#b8601a'; ctx.beginPath();
+				ctx.moveTo(cx - s * .3, cy + s * .25); ctx.lineTo(cx - s * .15, cy + s * .75); ctx.lineTo(cx + s * .05, cy + s * .62);
+				ctx.lineTo(cx + s * .22, cy + s * .75); ctx.lineTo(cx + s * .25, cy + s * .3); ctx.closePath(); ctx.fill(); ctx.stroke();
+				// pico abierto
+				ctx.fillStyle = FISCH.ink; ctx.beginPath();
+				ctx.moveTo(cx + s * .55, cy - s * .55); ctx.lineTo(cx + s * 1.15, cy - s * .7); ctx.lineTo(cx + s * .75, cy - s * .05); ctx.closePath(); ctx.fill();
+				ctx.fillStyle = FISCH.orange; ctx.beginPath();
+				ctx.moveTo(cx + s * .58, cy - s * .5); ctx.lineTo(cx + s * 1.02, cy - s * .64); ctx.lineTo(cx + s * .72, cy - s * .18); ctx.closePath(); ctx.fill();
+				// ojo
+				ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(cx + s * .22, cy - s * .3, s * .24, 0, 7); ctx.fill(); ctx.stroke();
+				ctx.fillStyle = FISCH.ink; ctx.beginPath(); ctx.arc(cx + s * .3, cy - s * .32, s * .1, 0, 7); ctx.fill();
+			}
+			// Sticker lima "F!SCH" (el de la camiseta).
+			function sticker(ctx, w, h) {
+				ctx.save(); ctx.translate(w / 2, h / 2); ctx.rotate(-.07);
+				rr(ctx, -w * .46, -h * .3, w * .92, h * .6, h * .3);
+				ctx.fillStyle = FISCH.lime; ctx.fill();
+				ctx.fillStyle = FISCH.ink; ctx.font = `400 ${h * .42}px ${HEAVY}`;
+				ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('F!SCH', 0, h * .02);
+				ctx.restore();
+			}
+			// Tapa de la lata: borde magenta, fondo lima con guiones negros, título vertical y pez.
+			function canLid(ctx, w, h) {
+				rr(ctx, 0, 0, w, h, 84); ctx.fillStyle = FISCH.pink; ctx.fill();
+				rr(ctx, 24, 24, w - 48, h - 48, 66); ctx.fillStyle = FISCH.lime; ctx.fill();
+				ctx.save(); rr(ctx, 24, 24, w - 48, h - 48, 66); ctx.clip();
+				ctx.fillStyle = FISCH.ink;
+				for (let r = 0; r < 10; r++)
+					for (let x = -50 + (r % 2 ? 46 : 0); x < w; x += 92) { rr(ctx, x, 34 + r * 56, 44, 22, 11); ctx.fill(); }
+				ctx.restore();
+				// parche lima detrás del título para que se lea
+				ctx.fillStyle = FISCH.lime; rr(ctx, w * .26, h * .12, w * .2, h * .76, 40); ctx.fill();
+				ctx.save(); ctx.translate(w * .36, h * .5); ctx.rotate(-Math.PI / 2);
+				ctx.fillStyle = FISCH.ink; ctx.font = `400 ${h * .34}px ${HEAVY}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+				ctx.fillText('F!SCH', 0, 0); ctx.restore();
+				fishFace(ctx, w * .72, h * .46, h * .27);
+				ctx.save(); ctx.translate(w * .565, h * .5); ctx.rotate(-Math.PI / 2);
+				ctx.fillStyle = FISCH.ink; ctx.font = `400 ${h * .06}px ${HEAVY}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+				ctx.fillText('SARDIÑAS ARTESANALES', 0, 0); ctx.restore();
+				ctx.save(); ctx.translate(w * .9, h * .5); ctx.rotate(-Math.PI / 2);
+				ctx.fillStyle = FISCH.ink; ctx.font = `400 ${h * .055}px ${HEAVY}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+				ctx.fillText('PESO NETO: 125g', 0, 0); ctx.restore();
+			}
+
 			// ---------- cada objeto vive en: tilt (inclinación) > pivot (giro) ----------
 			const slots = {};
 			function makeSlot(key, tiltX) {
@@ -395,7 +458,7 @@
 				}
 			}
 
-			// ---------- LA CAMISETA ----------
+			// ---------- LA CAMISETA: beige con sticker lima F!SCH ----------
 			{
 				const s = makeSlot('camiseta', 0.55);
 				const sh = new THREE.Shape();
@@ -404,51 +467,45 @@
 				sh.lineTo(.28, -.30); sh.lineTo(-.28, -.30); sh.lineTo(-.28, .05);
 				sh.lineTo(-.40, -.02); sh.lineTo(-.48, .08); sh.lineTo(-.30, .26); sh.closePath();
 
-				const shirt = new THREE.Mesh(flat(sh, .03, .006), mat(0xefe8d8, 0, .92));
-				const tex = canvasTex(256, 160, (ctx, w, h) => logo(ctx, w / 2, h * .6, 96, '#0f1a3d'));
-				const logoPlane = topPlane(.24, .15, tex, .037, .13, -.1);
-				const g = new THREE.Group(); g.add(shirt, logoPlane);
+				const shirt = new THREE.Mesh(flat(sh, .03, .006), mat(0xe9e1d0, 0, .95));
+				const stickerTex = canvasTex(512, 256, sticker);
+				const stickerPlane = topPlane(.25, .125, stickerTex, .0375, .12, .08);
+				// etiqueta pequeña con corona en el cuello
+				const tagTex = canvasTex(256, 160, (ctx, w, h) => logo(ctx, w / 2, h * .62, 90, FISCH.ink));
+				const tagPlane = topPlane(.09, .056, tagTex, .0375, 0, -.17);
+				const g = new THREE.Group(); g.add(shirt, stickerPlane, tagPlane);
 				g.position.y = -.015;
 				s.pivot.add(g);
 			}
 
-			// ---------- EL EMPAQUE: lata cerrada + lata abierta con la camiseta dentro ----------
+			// ---------- EL EMPAQUE: lata lima/magenta + lata abierta con la camiseta dentro ----------
 			{
 				const s = makeSlot('empaque', 0.55);
 				const W = .5, D = .3, H = .09;
 				const silver = mat(0xc9d1e0, .9, .28);
-				const blue = mat(0x1a3a9c, .55, .4);
+				const limeMat = mat(0xd6f03a, .35, .45);
 
-				// lata cerrada (tapa impresa)
+				// lata cerrada (tapa impresa estilo Fisch)
 				const can = new THREE.Group();
-				const body = new THREE.Mesh(flat(roundRect(W, D, .07), H, .004), blue);
+				const body = new THREE.Mesh(flat(roundRect(W, D, .07), H, .004), limeMat);
 				const rim = new THREE.Mesh(flat(roundRect(W + .012, D + .012, .074), .018), silver); rim.position.y = H - .012;
-				const label = canvasTex(520, 300, (ctx, w, h) => {
-					ctx.fillStyle = '#1a3a9c'; ctx.fillRect(0, 0, w, h);
-					ctx.fillStyle = '#2f5fd0'; ctx.beginPath(); ctx.moveTo(0, h);
-					for (let x = 0; x <= w; x += 8) ctx.lineTo(x, h * .82 + Math.sin(x / 28) * 9);
-					ctx.lineTo(w, h); ctx.closePath(); ctx.fill();
-					logo(ctx, w * .5, h * .42, 150, '#ffffff');
-					ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-					ctx.font = '700 28px "DM Sans", sans-serif'; ctx.fillText('SARDINAS EN LATA', w * .5, h * .72);
-					ctx.font = '700 16px "DM Sans", sans-serif'; ctx.fillText('INCLUYE CAMISETA', w * .78, h * .9);
-				});
+				const label = canvasTex(1040, 600, canLid);
 				const lid = topPlane(W - .035, D - .035, label, H + .0065);
 				const ring = new THREE.Mesh(new THREE.TorusGeometry(.03, .007, 10, 24).rotateX(-Math.PI / 2), silver);
-				ring.position.set(-W / 2 + .075, H + .012, 0);
+				ring.position.set(-W / 2 + .062, H + .012, 0);
 				can.add(body, rim, lid, ring);
 				can.position.set(-.18, 0, .13);
 				can.rotation.y = .12;
 
-				// lata abierta con camiseta
+				// lata abierta con camiseta beige + sticker lima
 				const tin = new THREE.Group();
 				const base = new THREE.Mesh(flat(roundRect(W, D, .07), .01), silver);
 				const wallShape = roundRect(W, D, .07); wallShape.holes.push(roundRect(W - .03, D - .03, .055));
 				const wall = new THREE.Mesh(flat(wallShape, .07, .002), silver);
-				const folded = new THREE.Mesh(flat(roundRect(W - .05, D - .05, .035), .06, .006), mat(0xefe8d8, 0, .92));
+				const folded = new THREE.Mesh(flat(roundRect(W - .05, D - .05, .035), .06, .006), mat(0xe9e1d0, 0, .95));
 				folded.position.y = .012;
-				const tex = canvasTex(300, 180, (ctx, w, h) => logo(ctx, w * .62, h * .6, 100, '#0f1a3d'));
-				const logoPlane = topPlane(W - .09, (W - .09) * .6, tex, .0755);
+				const tex = canvasTex(512, 256, sticker);
+				const logoPlane = topPlane(.2, .1, tex, .0755, .08, 0);
 				tin.add(base, wall, folded, logoPlane);
 				tin.position.set(.2, 0, -.13);
 				tin.rotation.y = -.1;
@@ -469,6 +526,63 @@
 				} catch (e) { console.warn('Fisch UI: no se pudo cargar', url, e); }
 			});
 
+			// ---------- sonidos (sintetizados con Web Audio, no necesitan archivos) ----------
+			let actx = null;
+			function audioCtx() {
+				if (!actx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; actx = new AC(); }
+				if (actx.state === 'suspended') actx.resume();
+				return actx;
+			}
+			function noise(a, dur) {
+				const buf = a.createBuffer(1, Math.ceil(a.sampleRate * dur), a.sampleRate), d = buf.getChannelData(0);
+				for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+				const src = a.createBufferSource(); src.buffer = buf; return src;
+			}
+			function env(g, t, peak, att, dur) {
+				g.gain.setValueAtTime(0.0001, t);
+				g.gain.exponentialRampToValueAtTime(peak, t + att);
+				g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+			}
+			const SFX = {
+				// La Mascota: tres burbujas ("blub blub blub") que suben de tono
+				mascota(a, t) {
+					[0, .11, .24].forEach((d, i) => {
+						const o = a.createOscillator(), g = a.createGain(), f = 360 + i * 150;
+						o.type = 'sine';
+						o.frequency.setValueAtTime(f, t + d);
+						o.frequency.exponentialRampToValueAtTime(f * 2.6, t + d + .09);
+						o.connect(g); g.connect(a.destination);
+						env(g, t + d, .4, .01, .13); o.start(t + d); o.stop(t + d + .15);
+					});
+				},
+				// La Camiseta: roce de tela (ruido filtrado que barre hacia arriba) + golpecito suave
+				camiseta(a, t) {
+					const n = noise(a, .5), bp = a.createBiquadFilter(), g = a.createGain();
+					bp.type = 'bandpass'; bp.Q.value = 1.1;
+					bp.frequency.setValueAtTime(600, t); bp.frequency.exponentialRampToValueAtTime(3400, t + .32);
+					n.connect(bp); bp.connect(g); g.connect(a.destination);
+					env(g, t, .55, .09, .42); n.start(t); n.stop(t + .5);
+					const o = a.createOscillator(), og = a.createGain();
+					o.type = 'sine'; o.frequency.setValueAtTime(150, t + .3); o.frequency.exponentialRampToValueAtTime(70, t + .42);
+					o.connect(og); og.connect(a.destination); env(og, t + .3, .35, .01, .14); o.start(t + .3); o.stop(t + .46);
+				},
+				// El Empaque: clic metálico de la anilla + "pop" + siseo de la lata al abrir
+				empaque(a, t) {
+					const c = noise(a, .05), hp = a.createBiquadFilter(), cg = a.createGain();
+					hp.type = 'highpass'; hp.frequency.value = 3000;
+					c.connect(hp); hp.connect(cg); cg.connect(a.destination); env(cg, t, .7, .002, .04); c.start(t); c.stop(t + .05);
+					const o = a.createOscillator(), og = a.createGain();
+					o.type = 'sine'; o.frequency.setValueAtTime(280, t + .06); o.frequency.exponentialRampToValueAtTime(60, t + .18);
+					o.connect(og); og.connect(a.destination); env(og, t + .06, .7, .005, .16); o.start(t + .06); o.stop(t + .24);
+					const h = noise(a, .6), hf = a.createBiquadFilter(), hg = a.createGain();
+					hf.type = 'highpass'; hf.frequency.value = 5000;
+					h.connect(hf); hf.connect(hg); hg.connect(a.destination); env(hg, t + .08, .22, .03, .5); h.start(t + .08); h.stop(t + .68);
+				}
+			};
+			function playSfx(key) {
+				try { const a = audioCtx(); if (a && SFX[key]) SFX[key](a, a.currentTime + .01); } catch (e) { console.warn('Fisch UI: sonido', e); }
+			}
+
 			// ---------- botones e información ----------
 			let selected = null, found = false;
 
@@ -488,7 +602,7 @@
 				buttons.forEach(b => b.setAttribute('aria-pressed', 'false'));
 				card.classList.remove('open');
 			}
-			buttons.forEach(b => b.addEventListener('click', () => select(b.dataset.key)));
+			buttons.forEach(b => b.addEventListener('click', () => { playSfx(b.dataset.key); select(b.dataset.key); }));
 			document.getElementById('fisch-close').addEventListener('click', clear);
 
 			mc.addListener('found', () => {
