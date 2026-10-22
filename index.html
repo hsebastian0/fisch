@@ -83,6 +83,48 @@
 		@media (prefers-reduced-motion: reduce) {
 			#fisch-ui, #fisch-card, .fisch-btn .circle { transition: none; }
 		}
+
+		/* ===== FISCH: ajustes móvil (tarjeta compacta, con scroll si hace falta) ===== */
+		#fisch-ui { box-sizing: border-box; gap: 10px; max-height: 100vh; max-height: 100dvh; }
+		#fisch-hint { font-size: 13px; max-width: 92%; box-sizing: border-box; }
+		#fisch-card {
+			box-sizing: border-box; padding: 12px 40px 12px 14px; border-radius: 16px;
+			max-height: 36vh; max-height: 36dvh; overflow-y: auto; overflow-x: hidden;
+			touch-action: pan-y; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+		}
+		#fisch-card h2 { font-size: clamp(16px, 4.6vw, 20px); line-height: 1.2; margin-bottom: 4px; }
+		#fisch-card p { font-size: clamp(13px, 3.7vw, 15px); line-height: 1.4; margin-bottom: 6px; overflow-wrap: anywhere; }
+		#fisch-card .tag { font-size: clamp(20px, 6vw, 26px); line-height: 1.1; }
+		#fisch-card .spin-tip { font-size: 11px; }
+		#fisch-close { top: 6px; right: 6px; width: 34px; height: 34px; }
+		#fisch-buttons { gap: clamp(12px, 5vw, 22px); }
+		.fisch-btn { font-size: clamp(11px, 3.2vw, 13px); }
+		.fisch-btn .circle { width: clamp(50px, 15vw, 64px); height: clamp(50px, 15vw, 64px); }
+		.fisch-btn svg { width: 55%; height: 55%; }
+		@media (max-height: 700px) { #fisch-card .spin-tip { display: none; } #fisch-card { max-height: 32dvh; } }
+
+		/* ===== FISCH: pantalla de inicio con colores de marca ===== */
+		#overlay {
+			background-color: #0b1530;
+			background-image:
+				url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='40'%3E%3Crect x='4' y='6' width='24' height='10' rx='5' fill='%23d6f03a' fill-opacity='.09'/%3E%3Crect x='34' y='26' width='24' height='10' rx='5' fill='%23d6f03a' fill-opacity='.09'/%3E%3C/svg%3E"),
+				radial-gradient(circle at 20% 15%, rgba(236, 34, 184, .35), transparent 55%),
+				radial-gradient(circle at 85% 90%, rgba(239, 125, 20, .30), transparent 50%);
+			padding: 24px; box-sizing: border-box; text-align: center;
+		}
+		#fisch-brand { font-family: "Caveat", cursive; font-weight: 700; font-size: clamp(64px, 22vw, 96px); line-height: 1; color: #fff; text-shadow: 3px 3px 0 #ec22b8; margin-bottom: 4px; }
+		#fisch-sub { font-family: "DM Sans", system-ui, sans-serif; font-size: 15px; color: #d6f03a; margin-bottom: 28px; letter-spacing: .02em; }
+		#start-button {
+			font-family: "Archivo Black", Impact, "Arial Black", sans-serif; font-weight: 400;
+			font-size: 18px; letter-spacing: .04em; text-transform: uppercase;
+			padding: 14px 40px; color: #101010; background-color: #d6f03a;
+			border: 3px solid #101010; border-radius: 999px; box-shadow: 4px 4px 0 #ec22b8;
+			transition: transform .1s, box-shadow .1s;
+		}
+		#start-button:active { background-color: #c4de2c; transform: translate(3px, 3px); box-shadow: 1px 1px 0 #ec22b8; }
+		#progress-bar-track { background-color: rgba(255, 255, 255, .15); height: 10px; border-radius: 6px; }
+		#progress-bar-fill { background: linear-gradient(90deg, #d6f03a, #ec22b8); }
+		#progress-label { font-family: "DM Sans", system-ui, sans-serif; color: #f1ebdd; }
 	</style>
 </head>
 
@@ -93,6 +135,8 @@
 	<div class="log" id="log">asdasdsa</div>
 
 	<div id="overlay">
+		<div id="fisch-brand">Fisch</div>
+		<div id="fisch-sub">Filtro de realidad aumentada</div>
 		<button id="start-button">Iniciar</button>
 		<div id="progress-container">
 			<div id="progress-bar-track">
