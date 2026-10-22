@@ -1,316 +1,528 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Fisch · Experiencia AR</title>
+	<title></title>
+	<meta charset="utf-8">
+	<meta name="generator" content="Three.js Editor">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<link rel="stylesheet" href="css/app.css">
 
-  <!-- A-Frame + MindAR (image tracking) -->
-  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+	<script type="importmap">
+	{
+		"imports": {
+			"three": "./js/three.compat.js",
+			"three/addons/": "./js/addons/",
+			"mindar-image-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
+		}
+	}
+	</script>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+	<script type="module">
+		import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/loaders/GLTFLoader.js';
+		window.ThreeGLTFLoader = GLTFLoader;
+	</script>
 
-  <style>
-    :root {
-      --navy: #0b1530;
-      --blue: #1d3fa8;
-      --blue-soft: #3f7be0;
-      --cream: #f1ebdd;
-      --ink: #ffffff;
-      --panel: rgba(8, 16, 38, 0.88);
-      --line: rgba(120, 160, 255, 0.35);
-    }
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html, body { margin: 0; height: 100%; overflow: hidden; background: #000; font-family: "DM Sans", system-ui, sans-serif; }
+	<!-- ===== FISCH: estilos del menú (añadido, no modifica app.css) ===== -->
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+	<style>
+		body { touch-action: none; }
 
-    /* ---------- UI overlay ---------- */
-    #ui {
-      position: fixed; inset: 0; z-index: 10; pointer-events: none;
-      display: flex; flex-direction: column; justify-content: space-between;
-      padding: env(safe-area-inset-top, 0) 0 env(safe-area-inset-bottom, 0);
-    }
-    #topbar {
-      display: flex; align-items: center; gap: 10px; padding: 14px 16px;
-      background: linear-gradient(rgba(0,0,0,.55), transparent);
-      color: var(--ink);
-    }
-    #topbar .logo { font-family: "Caveat", cursive; font-size: 34px; line-height: 1; }
-    #topbar .hint { font-size: 13px; opacity: .85; }
+		#fisch-ui {
+			position: fixed; left: 0; right: 0; bottom: 0; z-index: 1500;
+			padding: 0 12px calc(14px + env(safe-area-inset-bottom, 0px));
+			display: flex; flex-direction: column; gap: 12px; align-items: center;
+			pointer-events: none; opacity: 0; transition: opacity .4s ease;
+			font-family: "DM Sans", system-ui, sans-serif; color: #fff;
+		}
+		#fisch-ui.on { opacity: 1; }
 
-    #scan-hint {
-      align-self: center; margin: 0 24px; padding: 10px 16px; border-radius: 999px;
-      background: var(--panel); color: var(--ink); font-size: 14px; text-align: center;
-      border: 1px solid var(--line); transition: opacity .3s;
-    }
-    #scan-hint.hidden { opacity: 0; }
+		#fisch-hint {
+			padding: 9px 16px; border-radius: 999px; font-size: 14px; text-align: center;
+			background: rgba(8, 16, 38, .88); border: 1px solid rgba(120, 160, 255, .35);
+			transition: opacity .3s;
+		}
+		#fisch-hint.hidden { opacity: 0; }
 
-    #bottom { padding: 0 12px 14px; display: flex; flex-direction: column; gap: 12px; }
+		#fisch-card {
+			position: relative; width: 100%; max-width: 460px; pointer-events: auto;
+			background: rgba(8, 16, 38, .88); border: 1px solid rgba(120, 160, 255, .35);
+			border-radius: 18px; padding: 16px 44px 14px 16px;
+			backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+			opacity: 0; visibility: hidden; transform: translateY(12px);
+			transition: opacity .25s ease, transform .25s ease, visibility .25s;
+		}
+		#fisch-card.open { opacity: 1; visibility: visible; transform: none; }
+		#fisch-card h2 { margin: 0 0 6px; font-size: 20px; font-weight: 700; }
+		#fisch-card p { margin: 0 0 8px; font-size: 15px; line-height: 1.45; }
+		#fisch-card .tag { margin: 0; font-family: "Caveat", cursive; font-size: 26px; color: #9fc0ff; }
+		#fisch-card .spin-tip { margin: 6px 0 0; font-size: 12px; opacity: .7; }
+		#fisch-close {
+			position: absolute; top: 8px; right: 8px; width: 32px; height: 32px;
+			border: 0; border-radius: 50%; background: transparent; color: #fff;
+			font-size: 22px; cursor: pointer;
+		}
 
-    /* ---------- Info card ---------- */
-    #card {
-      pointer-events: auto; position: relative;
-      background: var(--panel); color: var(--ink);
-      border: 1px solid var(--line); border-radius: 18px;
-      padding: 16px 44px 14px 16px;
-      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-      transform: translateY(12px); opacity: 0; visibility: hidden;
-      transition: transform .25s ease, opacity .25s ease, visibility .25s;
-    }
-    #card.open { transform: none; opacity: 1; visibility: visible; }
-    #card h2 { margin: 0 0 6px; font-size: 20px; font-weight: 700; }
-    #card p { margin: 0 0 8px; font-size: 15px; line-height: 1.45; max-width: 60ch; }
-    #card .tag { font-family: "Caveat", cursive; font-size: 24px; color: #9fc0ff; margin: 0; }
-    #close {
-      position: absolute; top: 8px; right: 8px; width: 32px; height: 32px;
-      border: 0; border-radius: 50%; background: transparent; color: var(--ink);
-      font-size: 22px; cursor: pointer;
-    }
-    #close:focus-visible, .obj-btn:focus-visible { outline: 3px solid #9fc0ff; outline-offset: 2px; }
+		#fisch-buttons { display: flex; gap: 22px; pointer-events: auto; }
+		.fisch-btn {
+			display: flex; flex-direction: column; align-items: center; gap: 6px;
+			background: none; border: 0; color: #fff; cursor: pointer;
+			font: 500 13px "DM Sans", sans-serif;
+		}
+		.fisch-btn .circle {
+			width: 64px; height: 64px; border-radius: 50%; background: #f1ebdd;
+			display: grid; place-items: center; border: 3px solid transparent;
+			transition: border-color .2s, transform .2s;
+		}
+		.fisch-btn svg { width: 32px; height: 32px; fill: none; stroke: #0b1530; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+		.fisch-btn[aria-pressed="true"] .circle { border-color: #3f7be0; transform: scale(1.08); }
+		#fisch-close:focus-visible, .fisch-btn:focus-visible { outline: 3px solid #9fc0ff; outline-offset: 2px; }
 
-    /* ---------- Three buttons ---------- */
-    #buttons { display: flex; justify-content: center; gap: 22px; pointer-events: auto; }
-    .obj-btn {
-      display: flex; flex-direction: column; align-items: center; gap: 6px;
-      background: none; border: 0; color: var(--ink); font: 500 13px "DM Sans", sans-serif; cursor: pointer;
-    }
-    .obj-btn .circle {
-      width: 64px; height: 64px; border-radius: 50%; background: var(--cream);
-      display: grid; place-items: center; border: 3px solid transparent;
-      transition: border-color .2s, transform .2s;
-    }
-    .obj-btn svg { width: 32px; height: 32px; stroke: var(--navy); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-    .obj-btn[aria-pressed="true"] .circle { border-color: var(--blue-soft); transform: scale(1.08); }
-
-    @media (prefers-reduced-motion: reduce) {
-      #card, .obj-btn .circle { transition: none; }
-    }
-  </style>
+		@media (prefers-reduced-motion: reduce) {
+			#fisch-ui, #fisch-card, .fisch-btn .circle { transition: none; }
+		}
+	</style>
 </head>
 
-<body>
-  <!-- ========== UI ========== -->
-  <div id="ui">
-    <div>
-      <div id="topbar">
-        <span class="logo">Fisch</span>
-        <span class="hint">Gira para ver todos los ángulos</span>
-      </div>
-      <div id="scan-hint">Apunta la cámara a la imagen de Fisch</div>
-    </div>
+<body ontouchstart="">
 
-    <div id="bottom">
-      <section id="card" aria-live="polite">
-        <button id="close" aria-label="Cerrar">×</button>
-        <h2 id="card-title"></h2>
-        <p id="card-text"></p>
-        <p class="tag" id="card-tag"></p>
-      </section>
+	<div id="ar-container"></div>
 
-      <div id="buttons" role="group" aria-label="Objetos de Fisch">
-        <button class="obj-btn" data-key="mascota" aria-pressed="false">
-          <span class="circle">
-            <svg viewBox="0 0 32 32"><path d="M3 16c4-7 12-9 18-5l5-4v18l-5-4c-6 4-14 2-18-5z"/><circle cx="9" cy="14" r="1.2"/></svg>
-          </span>La Mascota
-        </button>
-        <button class="obj-btn" data-key="camiseta" aria-pressed="false">
-          <span class="circle">
-            <svg viewBox="0 0 32 32"><path d="M11 5l-8 4 3 6 3-1v13h14V14l3 1 3-6-8-4c-1 2-3 3-5 3s-4-1-5-3z"/></svg>
-          </span>La Camiseta
-        </button>
-        <button class="obj-btn" data-key="empaque" aria-pressed="false">
-          <span class="circle">
-            <svg viewBox="0 0 32 32"><rect x="5" y="9" width="22" height="14" rx="5"/><circle cx="12" cy="16" r="2.2"/></svg>
-          </span>El Empaque
-        </button>
-      </div>
-    </div>
-  </div>
+	<div class="log" id="log">asdasdsa</div>
 
-  <!-- ========== AR SCENE ========== -->
-  <!-- targets.mind: compílalo con https://hiukim.github.io/mind-ar-js-doc/tools/compile -->
-  <a-scene
-    mindar-image="imageTargetSrc: ./targets.mind; filterMinCF: 0.0001; filterBeta: 0.001; uiLoading: yes; uiScanning: no; uiError: yes;"
-    color-space="sRGB"
-    renderer="colorManagement: true; physicallyCorrectLights: true"
-    vr-mode-ui="enabled: false"
-    device-orientation-permission-ui="enabled: false">
+	<div id="overlay">
+		<button id="start-button">Iniciar</button>
+		<div id="progress-container">
+			<div id="progress-bar-track">
+				<div id="progress-bar-fill"></div>
+			</div>
+			<div id="progress-label">Cargando... 0%</div>
+		</div>
+	</div>
 
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+	<script type="module">
 
-    <a-light type="ambient" intensity="0.9"></a-light>
-    <a-light type="directional" position="1 2 3" intensity="1.1"></a-light>
+		import * as THREE from './js/three.module.js';
+		import { APP } from './js/app.js';
+		import { MindARController } from './js/mindar/mindar_controller.js';
 
-    <a-entity id="target" mindar-image-target="targetIndex: 0">
+		window.THREE = THREE; // Used by APP Scripts.
 
-      <!-- ====================== LA MASCOTA (pez) ====================== -->
-      <a-entity id="mascota" class="model" visible="false" position="0 0 0.35" drag-rotate>
-        <!-- cuerpo -->
-        <a-sphere position="0 0 0" radius="0.28" scale="0.85 1 0.8" color="#2f6fd6" material="roughness:.5"></a-sphere>
-        <!-- panza -->
-        <a-sphere position="0 -0.1 0.1" radius="0.2" scale="0.9 0.9 0.8" color="#eaf2ff" material="roughness:.6"></a-sphere>
-        <!-- ojo -->
-        <a-sphere position="-0.02 0.08 0.2" radius="0.09" color="#ffffff"></a-sphere>
-        <a-sphere position="-0.02 0.08 0.28" radius="0.05" color="#111"></a-sphere>
-        <!-- boca -->
-        <a-sphere position="0.1 -0.06 0.2" radius="0.07" scale="1.3 .8 .8" color="#8a3b2e"></a-sphere>
-        <!-- gorra -->
-        <a-sphere position="0 0.26 0" radius="0.2" scale="1 .6 1" color="#0f1a3d"></a-sphere>
-        <a-box position="0.12 0.2 0.15" width="0.28" height="0.02" depth="0.18" color="#0f1a3d" rotation="-8 0 0"></a-box>
-        <!-- aletas y cola -->
-        <a-cone position="-0.3 0 0" radius-bottom="0.08" radius-top="0" height="0.18" rotation="0 0 90" color="#1d56c0"></a-cone>
-        <a-cone position="0.28 -0.02 0" radius-bottom="0.08" radius-top="0" height="0.18" rotation="0 0 -90" color="#1d56c0"></a-cone>
-        <a-cone position="0 -0.38 -0.02" radius-bottom="0.1" radius-top="0" height="0.28" rotation="180 0 0" color="#2f6fd6"></a-cone>
-        <!-- camiseta mini -->
-        <a-box position="0 -0.2 0.12" width="0.3" height="0.22" depth="0.16" color="#efe8d8"></a-box>
-        <a-text value="Fisch" position="0 -0.2 0.205" align="center" width="0.9" color="#0f1a3d"></a-text>
-      </a-entity>
+		const log = document.getElementById('log');
+		const overlay = document.getElementById('overlay');
+		const startButton = document.getElementById('start-button');
+		const arContainer = document.getElementById('ar-container');
+		const progressContainer = document.getElementById('progress-container');
+		const progressFill = document.getElementById('progress-bar-fill');
+		const progressLabel = document.getElementById('progress-label');
 
-      <!-- ====================== LA CAMISETA ====================== -->
-      <a-entity id="camiseta" class="model" visible="false" position="0 0 0.3" drag-rotate>
-        <a-box position="0 0 0" width="0.5" height="0.6" depth="0.08" color="#efe8d8"></a-box>
-        <a-box height="0.2" width="0.24" depth="0.08" color="#efe8d8" position="-0.36 0.2 0" rotation="0 0 35"></a-box>
-        <a-box position="0.36 0.2 0" height="0.2" width="0.24" depth="0.08" color="#efe8d8" rotation="0 0 -35"></a-box>
-        <a-torus position="0 0.3 0.01" radius="0.08" radius-tubular="0.012" color="#d8d0bd" rotation="0 0 0"></a-torus>
-        <a-text value="Fisch" position="0.1 0.05 0.045" align="center" width="1.3" color="#0f1a3d"></a-text>
-        <a-text value="Fisch" position="-0.1 0.05 -0.045" rotation="0 180 0" align="center" width="1.3" color="#0f1a3d"></a-text>
-      </a-entity>
+		const debugMode = new URLSearchParams(location.search).get('debug') === '1';
 
-      <!-- ====================== EL EMPAQUE (lata + camiseta dentro) ====================== -->
-      <a-entity id="empaque" class="model" visible="false" position="0 0 0.25" drag-rotate>
-        <!-- base de la lata -->
-        <a-box position="0 0 0" width="0.8" height="0.5" depth="0.16" color="#1a3a9c" material="metalness:.6; roughness:.35"></a-box>
-        <a-box position="0 0 0.082" width="0.74" height="0.44" depth="0.01" color="#cfd6e4" material="metalness:.9; roughness:.25"></a-box>
-        <!-- camiseta doblada dentro -->
-        <a-box position="0 0 0.1" width="0.66" height="0.38" depth="0.05" color="#efe8d8"></a-box>
-        <a-text value="Fisch" position="0.17 -0.03 0.128" align="center" width="1.1" color="#0f1a3d"></a-text>
-        <!-- tapa abierta -->
-        <a-entity position="0 0.25 0.08" rotation="-110 0 0">
-          <a-box position="0 0.25 0" width="0.8" height="0.5" depth="0.02" color="#1a3a9c" material="metalness:.6; roughness:.35"></a-box>
-          <a-text value="Fisch" position="0 0.3 0.012" align="center" width="2.2" color="#ffffff"></a-text>
-          <a-text value="SARDINAS EN LATA" position="0 0.14 0.012" align="center" width="1.1" color="#ffffff"></a-text>
-          <a-torus position="0 0.45 0.015" radius="0.05" radius-tubular="0.01" color="#cfd6e4" material="metalness:1; roughness:.2"></a-torus>
-        </a-entity>
-      </a-entity>
+		let player = null;
+		let mindarController = null;
+		let loaded = false;
+		let loadPromise = null;
 
-    </a-entity>
-  </a-scene>
+		function setProgress(percent, text) {
+			progressFill.style.width = `${percent}%`;
+			progressLabel.textContent = `${text} ${percent}%`;
+		}
 
-  <script>
-    /* =========================================================
-       CONTENIDO: historia de Fisch para cada botón
-       ========================================================= */
-    const CONTENT = {
-      mascota: {
-        title: "La Mascota",
-        text: "Fisch es más que un pez, es una actitud. Curioso, libre y siempre en movimiento.",
-        tag: "¡Siempre Fisch!"
-      },
-      camiseta: {
-        title: "La Camiseta",
-        text: "Una camiseta cómoda, con el estilo único de Fisch. Hecha para quienes se atreven a ser diferentes.",
-        tag: "Vístete de actitud"
-      },
-      empaque: {
-        title: "El Empaque",
-        text: "Una lata de sardinas, que guarda algo mucho mejor: una camiseta de Fisch. Porque lo bueno siempre viene en lata.",
-        tag: "Buena vibra, en lata."
-      }
-    };
+		async function loadEverything() {
 
-    /* =========================================================
-       MODELOS .glb (opcional): cuando tengas tus modelos reales,
-       pon la ruta aquí y reemplazan a las figuras de ejemplo.
-       ========================================================= */
-    const MODELS = {
-      mascota:  "",   // ej: "./models/fisch-mascota.glb"
-      camiseta: "",   // ej: "./models/fisch-camiseta.glb"
-      empaque:  ""    // ej: "./models/fisch-lata.glb"
-    };
-    const MODEL_SCALE = { mascota: "0.6 0.6 0.6", camiseta: "0.6 0.6 0.6", empaque: "0.6 0.6 0.6" };
+			if (loadPromise) return loadPromise;
 
-    /* ---- Gira el objeto con el dedo/mouse; si nadie lo toca, gira solo ---- */
-    AFRAME.registerComponent("drag-rotate", {
-      init() {
-        this.dragging = false; this.lastX = 0; this.lastY = 0;
-        this.rotY = 0; this.rotX = 0;
-        const down = e => { const p = e.touches ? e.touches[0] : e; this.dragging = true; this.lastX = p.clientX; this.lastY = p.clientY; };
-        const move = e => {
-          if (!this.dragging) return;
-          const p = e.touches ? e.touches[0] : e;
-          this.rotY += (p.clientX - this.lastX) * 0.6;
-          this.rotX = Math.max(-60, Math.min(60, this.rotX + (p.clientY - this.lastY) * 0.4));
-          this.lastX = p.clientX; this.lastY = p.clientY;
-        };
-        const up = () => { this.dragging = false; };
-        window.addEventListener("touchstart", down, { passive: true });
-        window.addEventListener("touchmove", move, { passive: true });
-        window.addEventListener("touchend", up);
-        window.addEventListener("mousedown", down);
-        window.addEventListener("mousemove", move);
-        window.addEventListener("mouseup", up);
-      },
-      tick(t, dt) {
-        if (!this.el.getAttribute("visible")) return;
-        if (!this.dragging) this.rotY += dt * 0.03;   // giro automático lento
-        this.el.object3D.rotation.set(
-          THREE.MathUtils.degToRad(this.rotX),
-          THREE.MathUtils.degToRad(this.rotY), 0);
-      }
-    });
+			loadPromise = (async () => {
 
-    /* ---- Lógica de botones ---- */
-    const card = document.getElementById("card");
-    const buttons = [...document.querySelectorAll(".obj-btn")];
-    const scanHint = document.getElementById("scan-hint");
-    let current = "mascota";
-    let targetFound = false;
+				setProgress(0, 'Cargando escena...');
 
-    function show(key) {
-      current = key;
-      document.querySelectorAll(".model").forEach(m => m.setAttribute("visible", m.id === key));
-      buttons.forEach(b => b.setAttribute("aria-pressed", b.dataset.key === key));
-      const c = CONTENT[key];
-      document.getElementById("card-title").textContent = c.title;
-      document.getElementById("card-text").textContent = c.text;
-      document.getElementById("card-tag").textContent = c.tag;
-      card.classList.add("open");
-    }
-    function hideAll() {
-      document.querySelectorAll(".model").forEach(m => m.setAttribute("visible", false));
-      buttons.forEach(b => b.setAttribute("aria-pressed", "false"));
-      card.classList.remove("open");
-    }
+				// Descarga app.json con progreso real (0% - 25%)
+				const text = await new Promise((resolve, reject) => {
+					const loader = new THREE.FileLoader();
+					loader.load(
+						'app.json',
+						(t) => resolve(t),
+						(e) => {
+							if (e.lengthComputable) {
+								const p = Math.round((e.loaded / e.total) * 25);
+								setProgress(p, 'Cargando escena...');
+							}
+						},
+						(err) => reject(new Error(err.statusText || 'No se pudo descargar el json'))
+					);
+				});
 
-    buttons.forEach(b => b.addEventListener("click", () => show(b.dataset.key)));
-    document.getElementById("close").addEventListener("click", hideAll);
+				player = new APP.Player({ alpha: true });
+				await player.load(JSON.parse(text));
+				player.setSize(window.innerWidth, window.innerHeight);
+				player.play();
+				setProgress(55, 'Escena lista...');
 
-    /* ---- Reemplaza figuras por .glb si hay ruta ---- */
-    Object.entries(MODELS).forEach(([key, src]) => {
-      if (!src) return;
-      const el = document.getElementById(key);
-      while (el.firstChild) el.removeChild(el.firstChild);
-      const m = document.createElement("a-gltf-model");
-      m.setAttribute("src", src);
-      m.setAttribute("scale", MODEL_SCALE[key]);
-      el.appendChild(m);
-    });
+				document.body.appendChild(player.dom);
 
-    /* ---- Detección de la imagen ---- */
-    document.addEventListener("DOMContentLoaded", () => {
-      const target = document.getElementById("target");
-      target.addEventListener("targetFound", () => {
-        targetFound = true;
-        scanHint.classList.add("hidden");
-        show(current);
-      });
-      target.addEventListener("targetLost", () => {
-        targetFound = false;
-        scanHint.classList.remove("hidden");
-      });
-    });
-  </script>
+				window.addEventListener('resize', function () {
+					player.setSize(window.innerWidth, window.innerHeight);
+				});
+
+				window.player = player;
+
+				setProgress(85, 'Preparando AR...');
+				log.textContent = 'initializing...';
+
+				await new Promise((resolve) => setTimeout(resolve, 10));
+
+				setProgress(100, 'Listo');
+				loaded = true;
+
+				console.log(window.player);
+
+			})().catch((e) => {
+				loaded = false;
+				loadPromise = null; // permite reintentar al pulsar el botón
+				throw e;
+			});
+
+			return loadPromise;
+		}
+
+		// Al darle al botón start se inicia la cámara (requiere gesto del usuario).
+		startButton.addEventListener('click', async () => {
+
+			progressContainer.style.display = 'flex';
+
+			try {
+				await loadEverything();
+				if (!loaded) return;
+
+				setProgress(90, 'Iniciando cámara...');
+
+				// La cámara se inicia aquí, dentro del gesto del usuario.
+				mindarController = new MindARController(arContainer, player, debugMode);
+				window.mindarController = mindarController;
+
+				await mindarController.start();
+
+				// El player sigue funcionando (scripts/audio) pero su canvas ya no se usa.
+				if (player?.dom) player.dom.style.display = 'none';
+
+				overlay.classList.add('hidden');
+				setTimeout(() => overlay.remove(), 400);
+			} catch (e) {
+				console.error('Error durante la carga:', e);
+				startButton.textContent = 'Reintentar';
+				setProgress(0, 'Error al iniciar');
+			}
+		});
+
+		// Todo se carga automáticamente al abrir la página.
+		loadEverything().catch((e) => {
+			console.error('Error durante la carga automática:', e.message);
+			progressContainer.style.display = 'flex';
+			setProgress(0, 'Error al cargar');
+			startButton.textContent = 'Reintentar';
+		});
+
+	</script>
+
+	<!-- ===== FISCH: menú de objetos 3D (añadido) ===== -->
+	<div id="fisch-ui">
+		<div id="fisch-hint">Apunta la cámara a la imagen de Fisch</div>
+
+		<section id="fisch-card" aria-live="polite">
+			<button id="fisch-close" aria-label="Cerrar">×</button>
+			<h2 id="fisch-title"></h2>
+			<p id="fisch-text"></p>
+			<p class="tag" id="fisch-tag"></p>
+			<p class="spin-tip">Desliza el dedo sobre el objeto para girarlo</p>
+		</section>
+
+		<div id="fisch-buttons" role="group" aria-label="Objetos de Fisch">
+			<button class="fisch-btn" data-key="mascota" aria-pressed="false">
+				<span class="circle"><svg viewBox="0 0 32 32"><path d="M3 16c4-7 12-9 18-5l5-4v18l-5-4c-6 4-14 2-18-5z"/><circle cx="9" cy="14" r="1.2"/></svg></span>La Mascota
+			</button>
+			<button class="fisch-btn" data-key="camiseta" aria-pressed="false">
+				<span class="circle"><svg viewBox="0 0 32 32"><path d="M11 5l-8 4 3 6 3-1v13h14V14l3 1 3-6-8-4c-1 2-3 3-5 3s-4-1-5-3z"/></svg></span>La Camiseta
+			</button>
+			<button class="fisch-btn" data-key="empaque" aria-pressed="false">
+				<span class="circle"><svg viewBox="0 0 32 32"><rect x="5" y="9" width="22" height="14" rx="5"/><circle cx="12" cy="16" r="2.2"/></svg></span>El Empaque
+			</button>
+		</div>
+	</div>
+
+	<script>
+	/* =====================================================================
+	   FISCH: botones + objetos 3D sobre el marcador.
+	   No toca el flujo de tu app: espera a que window.mindarController
+	   esté iniciado y agrega sus objetos al anchor del target 0.
+	   ===================================================================== */
+	(function () {
+
+		const CONTENT = {
+			mascota: {
+				title: 'La Mascota',
+				text: 'Fisch es más que un pez, es una actitud. Curioso, libre y siempre en movimiento.',
+				tag: '¡Siempre Fisch!'
+			},
+			camiseta: {
+				title: 'La Camiseta',
+				text: 'Una camiseta cómoda, con el estilo único de Fisch. Hecha para quienes se atreven a ser diferentes.',
+				tag: 'Vístete de actitud'
+			},
+			empaque: {
+				title: 'El Empaque',
+				text: 'Una lata de sardinas, que guarda algo mucho mejor: una camiseta de Fisch. Porque lo bueno siempre viene en lata.',
+				tag: 'Buena vibra, en lata.'
+			}
+		};
+
+		// Si tienes modelos .glb propios, pon aquí la ruta y reemplazan a los generados.
+		// La mascota usa por defecto el pez que ya está en tu app.json.
+		const MODEL_URLS = { mascota: null, camiseta: null, empaque: null };
+		const MODEL_SIZE = 0.6; // tamaño máximo del objeto, en unidades de MindAR (1 = ancho del marcador)
+
+		const ui = document.getElementById('fisch-ui');
+		const hint = document.getElementById('fisch-hint');
+		const card = document.getElementById('fisch-card');
+		const buttons = [...document.querySelectorAll('.fisch-btn')];
+
+		function waitForAR() {
+			const mc = window.mindarController;
+			if (mc && mc.started && mc.mindar && mc.anchors.length) init(mc).catch(e => console.error('Fisch UI:', e));
+			else setTimeout(waitForAR, 250);
+		}
+		waitForAR();
+
+		async function init(mc) {
+
+			const THREE = window.THREE;
+			const anchor = mc.anchors[0];
+
+			try { await document.fonts.load('700 100px Caveat'); await document.fonts.load('700 26px "DM Sans"'); } catch (e) {}
+
+			// Mismo criterio que mindar_controller: el contenido se diseña con Y hacia arriba.
+			const holder = new THREE.Group();
+			holder.rotation.x = Math.PI / 2;
+			holder.add(new THREE.HemisphereLight(0xffffff, 0x6a7a99, 1.1));
+			anchor.group.add(holder);
+
+			// ---------- utilidades ----------
+			function canvasTex(w, h, draw) {
+				const c = document.createElement('canvas'); c.width = w; c.height = h;
+				draw(c.getContext('2d'), w, h);
+				const t = new THREE.CanvasTexture(c);
+				t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+				return t;
+			}
+			function crown(ctx, cx, cy, s, color) {
+				ctx.fillStyle = color; ctx.beginPath();
+				ctx.moveTo(cx - s, cy + s * .6); ctx.lineTo(cx - s, cy - s * .2); ctx.lineTo(cx - s * .5, cy + s * .2);
+				ctx.lineTo(cx, cy - s * .6); ctx.lineTo(cx + s * .5, cy + s * .2); ctx.lineTo(cx + s, cy - s * .2);
+				ctx.lineTo(cx + s, cy + s * .6); ctx.closePath(); ctx.fill();
+			}
+			function logo(ctx, cx, cy, size, color) {
+				crown(ctx, cx + size * .3, cy - size * .62, size * .14, color);
+				ctx.fillStyle = color; ctx.font = `700 ${size}px Caveat, cursive`;
+				ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+				ctx.fillText('Fisch', cx, cy);
+			}
+			function roundRect(w, h, r) {
+				const s = new THREE.Shape(), x = -w / 2, y = -h / 2;
+				s.moveTo(x + r, y); s.lineTo(x + w - r, y); s.quadraticCurveTo(x + w, y, x + w, y + r);
+				s.lineTo(x + w, y + h - r); s.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+				s.lineTo(x + r, y + h); s.quadraticCurveTo(x, y + h, x, y + h - r);
+				s.lineTo(x, y + r); s.quadraticCurveTo(x, y, x + r, y);
+				return s;
+			}
+			// Extruye hacia +Y (acostado sobre el marcador, cara hacia arriba).
+			function flat(shape, depth, bevel = 0) {
+				const g = new THREE.ExtrudeGeometry(shape, {
+					depth, bevelEnabled: bevel > 0, bevelSize: bevel, bevelThickness: bevel, bevelSegments: 2, curveSegments: 12
+				});
+				g.rotateX(-Math.PI / 2);
+				return g;
+			}
+			function topPlane(w, h, tex, y, x = 0, z = 0) {
+				const g = new THREE.PlaneGeometry(w, h); g.rotateX(-Math.PI / 2);
+				const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: .6 }));
+				m.position.set(x, y, z); return m;
+			}
+			const mat = (color, metalness = 0, roughness = .6) => new THREE.MeshStandardMaterial({ color, metalness, roughness });
+
+			function fitTo(root, content, size) {
+				root.updateMatrixWorld(true);
+				const box = new THREE.Box3().setFromObject(content);
+				const dim = box.getSize(new THREE.Vector3());
+				const k = size / Math.max(dim.x, dim.y, dim.z, 1e-6);
+				content.scale.multiplyScalar(k);
+				root.updateMatrixWorld(true);
+				const c = new THREE.Box3().setFromObject(content).getCenter(new THREE.Vector3());
+				content.position.sub(c);
+			}
+
+			// ---------- cada objeto vive en: tilt (inclinación) > pivot (giro) ----------
+			const slots = {};
+			function makeSlot(key, tiltX) {
+				const tilt = new THREE.Group(), pivot = new THREE.Group();
+				tilt.rotation.x = tiltX; tilt.visible = false;
+				tilt.add(pivot); holder.add(tilt);
+				slots[key] = { tilt, pivot, baseTilt: tiltX };
+				return slots[key];
+			}
+
+			// ---------- LA MASCOTA: el pez de tu app.json ----------
+			let mixer = null;
+			{
+				const s = makeSlot('mascota', 0);
+				const fish = window.player && window.player.scene && window.player.scene.getObjectByName('orange_fish_rig.glb');
+				if (fish) {
+					fish.removeFromParent();
+					fish.position.set(0, 0, 0); fish.rotation.set(0, 0, 0);
+					fish.traverse(o => { if (o.isMesh) o.frustumCulled = false; });
+					const wrap = new THREE.Group(); wrap.add(fish);
+					fitTo(wrap, fish, MODEL_SIZE);
+					s.pivot.add(wrap);
+
+					const clips = [];
+					fish.traverse(o => { if (o.animations && o.animations.length) clips.push(...o.animations); });
+					if (clips.length) {
+						mixer = new THREE.AnimationMixer(fish);
+						clips.forEach(c => mixer.clipAction(c).play());
+					}
+				} else {
+					console.warn('Fisch UI: no se encontró orange_fish_rig.glb en la escena.');
+				}
+			}
+
+			// ---------- LA CAMISETA ----------
+			{
+				const s = makeSlot('camiseta', 0.55);
+				const sh = new THREE.Shape();
+				sh.moveTo(-.15, .30); sh.quadraticCurveTo(0, .20, .15, .30);
+				sh.lineTo(.30, .26); sh.lineTo(.48, .08); sh.lineTo(.40, -.02); sh.lineTo(.28, .05);
+				sh.lineTo(.28, -.30); sh.lineTo(-.28, -.30); sh.lineTo(-.28, .05);
+				sh.lineTo(-.40, -.02); sh.lineTo(-.48, .08); sh.lineTo(-.30, .26); sh.closePath();
+
+				const shirt = new THREE.Mesh(flat(sh, .03, .006), mat(0xefe8d8, 0, .92));
+				const tex = canvasTex(256, 160, (ctx, w, h) => logo(ctx, w / 2, h * .6, 96, '#0f1a3d'));
+				const logoPlane = topPlane(.24, .15, tex, .037, .13, -.1);
+				const g = new THREE.Group(); g.add(shirt, logoPlane);
+				g.position.y = -.015;
+				s.pivot.add(g);
+			}
+
+			// ---------- EL EMPAQUE: lata cerrada + lata abierta con la camiseta dentro ----------
+			{
+				const s = makeSlot('empaque', 0.55);
+				const W = .5, D = .3, H = .09;
+				const silver = mat(0xc9d1e0, .9, .28);
+				const blue = mat(0x1a3a9c, .55, .4);
+
+				// lata cerrada (tapa impresa)
+				const can = new THREE.Group();
+				const body = new THREE.Mesh(flat(roundRect(W, D, .07), H, .004), blue);
+				const rim = new THREE.Mesh(flat(roundRect(W + .012, D + .012, .074), .018), silver); rim.position.y = H - .012;
+				const label = canvasTex(520, 300, (ctx, w, h) => {
+					ctx.fillStyle = '#1a3a9c'; ctx.fillRect(0, 0, w, h);
+					ctx.fillStyle = '#2f5fd0'; ctx.beginPath(); ctx.moveTo(0, h);
+					for (let x = 0; x <= w; x += 8) ctx.lineTo(x, h * .82 + Math.sin(x / 28) * 9);
+					ctx.lineTo(w, h); ctx.closePath(); ctx.fill();
+					logo(ctx, w * .5, h * .42, 150, '#ffffff');
+					ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+					ctx.font = '700 28px "DM Sans", sans-serif'; ctx.fillText('SARDINAS EN LATA', w * .5, h * .72);
+					ctx.font = '700 16px "DM Sans", sans-serif'; ctx.fillText('INCLUYE CAMISETA', w * .78, h * .9);
+				});
+				const lid = topPlane(W - .035, D - .035, label, H + .0065);
+				const ring = new THREE.Mesh(new THREE.TorusGeometry(.03, .007, 10, 24).rotateX(-Math.PI / 2), silver);
+				ring.position.set(-W / 2 + .075, H + .012, 0);
+				can.add(body, rim, lid, ring);
+				can.position.set(-.18, 0, .13);
+				can.rotation.y = .12;
+
+				// lata abierta con camiseta
+				const tin = new THREE.Group();
+				const base = new THREE.Mesh(flat(roundRect(W, D, .07), .01), silver);
+				const wallShape = roundRect(W, D, .07); wallShape.holes.push(roundRect(W - .03, D - .03, .055));
+				const wall = new THREE.Mesh(flat(wallShape, .07, .002), silver);
+				const folded = new THREE.Mesh(flat(roundRect(W - .05, D - .05, .035), .06, .006), mat(0xefe8d8, 0, .92));
+				folded.position.y = .012;
+				const tex = canvasTex(300, 180, (ctx, w, h) => logo(ctx, w * .62, h * .6, 100, '#0f1a3d'));
+				const logoPlane = topPlane(W - .09, (W - .09) * .6, tex, .0755);
+				tin.add(base, wall, folded, logoPlane);
+				tin.position.set(.2, 0, -.13);
+				tin.rotation.y = -.1;
+
+				const g = new THREE.Group(); g.add(can, tin); g.scale.setScalar(.92);
+				s.pivot.add(g);
+			}
+
+			// ---------- .glb opcionales ----------
+			Object.keys(MODEL_URLS).forEach(async key => {
+				const url = MODEL_URLS[key];
+				if (!url || !window.ThreeGLTFLoader) return;
+				try {
+					const gltf = await new window.ThreeGLTFLoader().loadAsync(url);
+					const wrap = new THREE.Group(); wrap.add(gltf.scene);
+					fitTo(wrap, gltf.scene, MODEL_SIZE);
+					slots[key].pivot.clear(); slots[key].pivot.add(wrap);
+				} catch (e) { console.warn('Fisch UI: no se pudo cargar', url, e); }
+			});
+
+			// ---------- botones e información ----------
+			let selected = null, found = false;
+
+			function select(key) {
+				selected = key;
+				Object.entries(slots).forEach(([k, s]) => { s.tilt.visible = (k === key); });
+				buttons.forEach(b => b.setAttribute('aria-pressed', b.dataset.key === key));
+				const c = CONTENT[key];
+				document.getElementById('fisch-title').textContent = c.title;
+				document.getElementById('fisch-text').textContent = c.text;
+				document.getElementById('fisch-tag').textContent = c.tag;
+				card.classList.add('open');
+			}
+			function clear() {
+				selected = null;
+				Object.values(slots).forEach(s => { s.tilt.visible = false; });
+				buttons.forEach(b => b.setAttribute('aria-pressed', 'false'));
+				card.classList.remove('open');
+			}
+			buttons.forEach(b => b.addEventListener('click', () => select(b.dataset.key)));
+			document.getElementById('fisch-close').addEventListener('click', clear);
+
+			mc.addListener('found', () => {
+				found = true; hint.classList.add('hidden');
+				if (!selected) select('mascota');
+			});
+			mc.addListener('lost', () => { found = false; hint.classList.remove('hidden'); });
+
+			// ---------- girar con el dedo + giro automático ----------
+			let dragging = false, lx = 0, ly = 0, last = performance.now();
+			document.addEventListener('pointerdown', e => {
+				if (e.target.closest('#fisch-ui')) return;
+				dragging = true; lx = e.clientX; ly = e.clientY;
+			});
+			document.addEventListener('pointermove', e => {
+				if (!dragging || !selected) return;
+				const s = slots[selected];
+				s.pivot.rotation.y += (e.clientX - lx) * .012;
+				s.tilt.rotation.x = Math.max(-.3, Math.min(1.3, s.tilt.rotation.x + (e.clientY - ly) * .008));
+				lx = e.clientX; ly = e.clientY;
+			});
+			['pointerup', 'pointercancel'].forEach(t => document.addEventListener(t, () => { dragging = false; }));
+
+			mc.addListener('update', () => {
+				const now = performance.now(), dt = now - last; last = now;
+				if (mixer) mixer.update(dt / 1000);
+				if (selected && !dragging) slots[selected].pivot.rotation.y += dt * .0006;
+			});
+
+			ui.classList.add('on');
+		}
+	})();
+	</script>
+
 </body>
+
 </html>
